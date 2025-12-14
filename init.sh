@@ -712,6 +712,22 @@ EOF
 # 启动并设置开机自启
 systemctl enable --now fail2ban
 
+# ================================
+# 日志清理配置 (logrotate, 保留30天)
+# ================================
+echo "[INFO] 正在配置日志清理策略 (30天)..."
+
+cat >/etc/logrotate.d/vps-clean <<EOF
+/var/log/*.log {
+    daily
+    rotate 30
+    compress
+    missingok
+    notifempty
+    create 0640 root adm
+}
+EOF
+
 echo "================================"
 # =========================================================
 # Done
@@ -726,3 +742,4 @@ echo "Log: $LOG_FILE"
 echo "[INFO] Fail2ban 已安装并启用"
 echo "[INFO] 当前保护端口: ${SSH_PORT:-22}"
 echo "[INFO] 查看状态命令: sudo fail2ban-client status sshd"
+echo "[INFO] 日志清理策略已设置：每天轮转，保留30天"
