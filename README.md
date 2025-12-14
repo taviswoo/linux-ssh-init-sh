@@ -15,7 +15,7 @@
 
 ---
 
-项目原址：nodeseek.com/jump?to=https%3A%2F%2Fgithub.com%2F247like%2Flinux-ssh-init-sh，通过AI编程增加了自动安装Fail2ban
+项目原址：[nodeseek.com/jump?to=https%3A%2F%2Fgithub.com%2F247like%2Flinux-ssh-init-sh](https://github.com/247like/linux-ssh-init-sh/tree/main)，通过AI编程增加了自动安装Fail2ban，且设置30天清理日志
 
 一个生产就绪、符合 POSIX 标准的 Shell 脚本，用于 Linux 服务器的一键初始化与 SSH 安全加固。
 该脚本可自动完成 **SSH 密钥配置**、**修改端口**、**创建用户**、**开启 BBR** 以及 **系统更新**，并完美兼容 Debian, Ubuntu, CentOS, RHEL 以及 Alpine Linux。
