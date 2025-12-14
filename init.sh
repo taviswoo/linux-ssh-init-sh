@@ -82,7 +82,7 @@ msg() {
       OPT_PORT_3)  echo "3) 手动指定" ;;
       SELECT)      echo "请选择 [1-3]: " ;;
       INPUT_PORT)  echo "请输入端口号 (1024-65535): " ;;
-      PORT_ERR)    echo "端口输入无效 (非数字或超范围)" ;;
+      PORT_ERR)    echo "❌ 端口输入无效 (非数字或超范围)" ;;
       ASK_KEY_T)   echo "SSH 公钥来源：" ;;
       OPT_KEY_1)   echo "1) GitHub 用户导入" ;;
       OPT_KEY_2)   echo "2) URL 下载" ;;
@@ -98,7 +98,7 @@ msg() {
       C_KEY)       echo "密钥来源: " ;;
       C_UPD)       echo "系统更新: " ;;
       C_BBR)       echo "开启 BBR: " ;;
-      WARN_FW)     echo "注意：修改端口前，请确认云厂商防火墙/安全组已放行对应 TCP 端口" ;;
+      WARN_FW)     echo "⚠ 注意：修改端口前，请确认云厂商防火墙/安全组已放行对应 TCP 端口" ;;
       ASK_SURE)    echo "确认执行? [y/n]: " ;;
       CANCEL)      echo "已取消操作" ;;
       I_INSTALL)   echo "正在安装基础依赖..." ;;
@@ -114,11 +114,8 @@ msg() {
       DONE_T)      echo "================ 完成 ================" ;;
       DONE_MSG1)   echo "请【不要关闭】当前窗口。" ;;
       DONE_MSG2)   echo "请新开一个终端窗口测试登录：" ;;
-      DONE_FW)     echo "若无法连接，请再次检查防火墙设置" ;;
+      DONE_FW)     echo "⚠ 若无法连接，请再次检查防火墙设置" ;;
       AUTO_SKIP)   echo "检测到参数输入，跳过询问: " ;;
-      I_FAIL2BAN)  echo "正在安装 Fail2Ban（SSH 暴力破解防护）..." ;;
-      DONE_FAIL2BAN) echo "Fail2Ban 已安装并启用（自动封禁暴力破解 IP）" ;;
-      DONE_FAIL2BAN_CMD) echo "   查看状态：fail2ban-client status sshd" ;;
       *)           echo "$key" ;;
     esac
   else
@@ -133,7 +130,7 @@ msg() {
       OPT_PORT_3)  echo "3) Manual Input" ;;
       SELECT)      echo "Select [1-3]: " ;;
       INPUT_PORT)  echo "Enter Port (1024-65535): " ;;
-      PORT_ERR)    echo "Invalid port (not numeric or out of range)" ;;
+      PORT_ERR)    echo "❌ Invalid port (not numeric or out of range)" ;;
       ASK_KEY_T)   echo "SSH Public Key Source:" ;;
       OPT_KEY_1)   echo "1) GitHub User" ;;
       OPT_KEY_2)   echo "2) URL Download" ;;
@@ -149,7 +146,7 @@ msg() {
       C_KEY)       echo "Key Source: " ;;
       C_UPD)       echo "Update: " ;;
       C_BBR)       echo "Enable BBR: " ;;
-      WARN_FW)     echo "WARNING: Ensure Cloud Firewall/Security Group allows the new TCP port" ;;
+      WARN_FW)     echo "⚠ WARNING: Ensure Cloud Firewall/Security Group allows the new TCP port" ;;
       ASK_SURE)    echo "Proceed? [y/n]: " ;;
       CANCEL)      echo "Cancelled." ;;
       I_INSTALL)   echo "Installing dependencies..." ;;
@@ -165,11 +162,8 @@ msg() {
       DONE_T)      echo "================ DONE ================" ;;
       DONE_MSG1)   echo "Please DO NOT close this window yet." ;;
       DONE_MSG2)   echo "Open a NEW terminal to test login:" ;;
-      DONE_FW)     echo "If connection fails, check your Firewall settings." ;;
+      DONE_FW)     echo "⚠ If connection fails, check your Firewall settings." ;;
       AUTO_SKIP)   echo "Argument detected, skipping prompt: " ;;
-      I_FAIL2BAN)  echo "Installing Fail2Ban (SSH brute-force protection)..." ;;
-      DONE_FAIL2BAN) echo "Fail2Ban installed and enabled (auto-ban brute-force IPs)" ;;
-      DONE_FAIL2BAN_CMD) echo "   Check status: fail2ban-client status sshd" ;;
       *)           echo "$key" ;;
     esac
   fi
@@ -192,9 +186,9 @@ APK_UPDATED="n"
 YUM_PREPARED="n"
 
 log() { echo "$(date '+%F %T') $*" >>"$LOG_FILE"; }
-info() { echo "[INFO] $*"; log "[INFO] $*"; }
-warn() { echo "[WARN] $*"; log "[WARN] $*"; }
-err() { echo "[ERR ] $*"; log "[ERR ] $*"; }
+info() { echo "\033[0;34m[INFO]\033[0m $*"; log "[INFO] $*"; }
+warn() { echo "\033[0;33m[WARN]\033[0m $*"; log "[WARN] $*"; }
+err() { echo "\033[0;31m[ERR ]\033[0m $*"; log "[ERR ] $*"; }
 die() { err "$*"; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || die "$(msg MUST_ROOT)"
@@ -296,50 +290,6 @@ enable_bbr() {
     echo 'net.ipv4.tcp_congestion_control=bbr' >>"$sysctl_conf"
 
   sysctl -p >>"$LOG_FILE" 2>&1 || true
-  info "$(msg I_BBR)"
-}
-
-# ---------------- 新增：Fail2Ban 安装 ----------------
-install_fail2ban() {
-  echo "$(msg I_FAIL2BAN)"
-  
-  case "$PM" in
-    apt)
-      install_pkg fail2ban || warn "Fail2Ban 安装失败（Debian/Ubuntu）"
-      ;;
-    yum)
-      # RHEL/CentOS/Rocky/AlmaLinux 需要 EPEL
-      install_pkg epel-release || true
-      install_pkg fail2ban || warn "Fail2Ban 安装失败（RHEL 系）"
-      ;;
-    apk)
-      install_pkg fail2ban || warn "Fail2Ban 安装失败（Alpine）"
-      ;;
-    *)
-      warn "不支持的系统，无法安装 Fail2Ban"
-      return
-      ;;
-  esac
-  
-  # 启用并启动服务（如果 systemctl 存在）
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl enable fail2ban >/dev/null 2>&1 || true
-    systemctl start fail2ban >/dev/null 2>&1 || true
-  fi
-  
-  # 默认启用 sshd jail（大多数发行版自带配置）
-  if [ -f /etc/fail2ban/jail.local ]; then
-    grep -q '^\[sshd\]' /etc/fail2ban/jail.local || \
-      echo -e "\n[sshd]\nenabled = true" >> /etc/fail2ban/jail.local
-  elif [ -f /etc/fail2ban/jail.conf ]; then
-    # 避免直接修改 conf，创建 local 如果不存在
-    [ -f /etc/fail2ban/jail.local ] || echo -e "[sshd]\nenabled = true" > /etc/fail2ban/jail.local
-  fi
-  
-  # 重启服务应用配置
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl restart fail2ban >/dev/null 2>&1 || true
-  fi
 }
 
 # ---------------- ssh server ensure ----------------
@@ -723,20 +673,56 @@ if ! restart_sshd; then
   warn "$(msg W_RESTART)"
 fi
 
+# ================================
+# Fail2ban 安装与配置 (Auto)
+# ================================
+
+echo "[INFO] 正在安装 Fail2ban 防护..."
+
+# 安装 Fail2ban
+if command -v apt >/dev/null 2>&1; then
+    apt update -y
+    apt install -y fail2ban
+elif command -v yum >/dev/null 2>&1; then
+    yum install -y epel-release
+    yum install -y fail2ban
+elif command -v dnf >/dev/null 2>&1; then
+    dnf install -y epel-release
+    dnf install -y fail2ban
+else
+    echo "[WARN] 未检测到支持的包管理器，请手动安装 Fail2ban"
+fi
+
+# 创建 jail.local 配置
+cat >/etc/fail2ban/jail.local <<EOF
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+bantime  = 3600
+findtime = 600
+maxretry = 5
+backend  = systemd
+
+[sshd]
+enabled  = true
+port     = ${SSH_PORT:-22}
+filter   = sshd
+logpath  = /var/log/auth.log
+EOF
+
+# 启动并设置开机自启
+systemctl enable --now fail2ban
+
+echo "================================"
 # =========================================================
 # Done
 # =========================================================
-echo "$(msg DONE_T)"
-echo
-echo "$(msg DONE_MSG1)"
-echo "$(msg DONE_MSG2)"
-echo
-if [ -n "$FINAL_LOGIN_CMD" ]; then
-  echo "$FINAL_LOGIN_CMD"
-fi
-echo
-echo "$(msg DONE_FW)"
-echo
-echo "$(msg DONE_FAIL2BAN)"
-echo "$(msg DONE_FAIL2BAN_CMD)"
-echo
+echo ""
+msg DONE_T
+msg DONE_MSG1
+msg DONE_MSG2
+echo "   ssh -p $SSH_PORT $TARGET_USER@<IP>"
+[ "$SSH_PORT" != "22" ] && msg DONE_FW
+echo "Log: $LOG_FILE"
+echo "[INFO] Fail2ban 已安装并启用"
+echo "[INFO] 当前保护端口: ${SSH_PORT:-22}"
+echo "[INFO] 查看状态命令: sudo fail2ban-client status sshd"
