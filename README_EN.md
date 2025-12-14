@@ -14,7 +14,7 @@
 </p>
 
 ---
-
+Original project: nodeseek.com/jump?to=https%3A%2F%2Fgithub.com%2F247like%2Flinux-ssh-init-sh. Using AI programming, I added automatic Fail2ban installation.
 A production-ready, POSIX-compliant shell script designed to initialize Linux servers and harden SSH security in minutes.
 
 It safely handles **SSH key deployment**, **port changing**, **user creation**, **TCP BBR enablement**, and **system updates**, while ensuring compatibility across Debian, Ubuntu, CentOS, RHEL, and Alpine Linux.
