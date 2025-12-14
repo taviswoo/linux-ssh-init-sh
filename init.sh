@@ -673,6 +673,45 @@ if ! restart_sshd; then
   warn "$(msg W_RESTART)"
 fi
 
+# ================================
+# Fail2ban 安装与配置 (Auto)
+# ================================
+
+echo "[INFO] 正在安装 Fail2ban 防护..."
+
+# 安装 Fail2ban
+if command -v apt >/dev/null 2>&1; then
+    apt update -y
+    apt install -y fail2ban
+elif command -v yum >/dev/null 2>&1; then
+    yum install -y epel-release
+    yum install -y fail2ban
+elif command -v dnf >/dev/null 2>&1; then
+    dnf install -y epel-release
+    dnf install -y fail2ban
+else
+    echo "[WARN] 未检测到支持的包管理器，请手动安装 Fail2ban"
+fi
+
+# 创建 jail.local 配置
+cat >/etc/fail2ban/jail.local <<EOF
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+bantime  = 3600
+findtime = 600
+maxretry = 5
+backend  = systemd
+
+[sshd]
+enabled  = true
+port     = ${SSH_PORT:-22}
+filter   = sshd
+logpath  = /var/log/auth.log
+EOF
+
+# 启动并设置开机自启
+systemctl enable --now fail2ban
+
 # =========================================================
 # Done
 # =========================================================
@@ -683,3 +722,4 @@ msg DONE_MSG2
 echo "   ssh -p $SSH_PORT $TARGET_USER@<IP>"
 [ "$SSH_PORT" != "22" ] && msg DONE_FW
 echo "Log: $LOG_FILE"
+echo "[INFO] Fail2ban 已安装并启用，当前保护端口: ${SSH_PORT:-22}"
